@@ -1,0 +1,94 @@
+{
+  "_why": [
+    "Every process Brain Surgeon may kill is named by a rule a person can read. Size alone is never a reason.",
+    "Edit the protected list first: anything your work depends on (servers, tunnels, trading or recording apps,",
+    "long-running monitors) goes in names, cmdline_contains or listening_ports, and is then untouchable at any pressure,",
+    "along with every ancestor process of it."
+  ],
+  "health_url": "http://localhost:5678/healthz",
+  "pressure": {
+    "amber_commit_pct": 85,
+    "red_commit_pct": 93,
+    "amber_free_mb": 1000,
+    "red_free_mb": 650,
+    "_why_red_650": "Set from evidence, not taste: at 430 MB free the machine was already failing (Windows itself killed the same browser tab five times) while a 400 MB threshold still read AMBER and nothing acted. RED must fire while there is still something to save."
+  },
+  "protected": {
+    "_why": "Never touched by any rule, at any pressure.",
+    "names": [
+      "claude.exe",
+      "cloudflared.exe",
+      "obs64.exe",
+      "explorer.exe",
+      "dwm.exe",
+      "MsMpEng.exe",
+      "WindowsTerminal.exe",
+      "OpenConsole.exe",
+      "conhost.exe",
+      "svchost.exe",
+      "csrss.exe",
+      "winlogon.exe",
+      "lsass.exe",
+      "services.exe",
+      "System",
+      "Registry",
+      "Code.exe"
+    ],
+    "listening_ports": [5678, 9222],
+    "cmdline_contains": [
+      "--stream",
+      "brain_surgeon.py",
+      "node_modules\\n8n",
+      "n8n start",
+      "uvicorn"
+    ]
+  },
+  "rules": {
+    "stuck_duplicate_script": {
+      "_why": "A scheduled script that should finish in minutes, running as many identical copies (a health check that hangs, launched every five minutes, becomes 59 shells). Keep the newest copy, kill the rest. Any pressure.",
+      "interpreters": ["powershell.exe", "pwsh.exe", "python.exe", "pythonw.exe", "cmd.exe"],
+      "cmdline_must_contain_any": ["C:\\ops", "C:/ops"],
+      "min_copies": 3,
+      "oldest_min_age_minutes": 20
+    },
+    "bloated_automation_renderer": {
+      "_why": "A single tab in a browser profile that scripts drive (not your everyday browser) that has grown huge. Kill the renderer only: that tab shows Aw, Snap and reloads; the browser, its logins and every other tab stay.",
+      "profiles_contain_any": ["scraper-automation", "ms-playwright", "playwright"],
+      "private_mb_any_pressure": 6000,
+      "private_mb_amber": 3000
+    },
+    "bloated_personal_renderer": {
+      "_why": "A tab in your own browser. Only at RED pressure and only when truly enormous, because that tab may hold unsaved work.",
+      "private_mb_red": 6000
+    },
+    "orphan_headless": {
+      "_why": "Headless or Playwright browsers whose parent script is gone, at AMBER or worse. The parent-gone test is the evidence; the age floor only avoids racing a process whose parent has not been recorded yet. A two-hour floor once let orphans from a crashed run sit through exactly the stretch when memory was tight.",
+      "cmdline_contains_any": ["--headless", "ms-playwright"],
+      "min_age_minutes": 2
+    },
+    "last_resort": {
+      "_why": "Still RED after rules 1-4 (memory spread across ordinary apps, no single process breaking a rule). Free memory from this ranked list, re-measuring after every kill, and stop the moment free memory is safe. At AMBER only the expendable apps are taken; browser tabs are RED-only because they can hold unsaved work.",
+      "stop_when_free_mb": 1000,
+      "max_kills_per_run": 40,
+      "apps": [
+        "Loom.exe",
+        "Spotify.exe",
+        "OneDrive.exe",
+        "Teams.exe",
+        "ms-teams.exe",
+        "PhoneExperienceHost.exe",
+        "Widgets.exe",
+        "SearchHost.exe"
+      ],
+      "renderers": {
+        "names": ["chrome.exe", "msedge.exe", "msedgewebview2.exe"],
+        "min_private_mb": 700
+      },
+      "red_tier2": {
+        "_why": "When tier 1 finds nothing (many mid-sized tabs, none over the floor): desktop clients whose phone app carries the same thing, then smaller Edge/webview tabs. Chrome keeps its higher floor if work you cannot lose lives in Chrome tabs.",
+        "apps": ["Signal.exe", "Telegram.exe", "WhatsApp.exe", "Loom.exe"],
+        "renderer_min_mb": {"msedge.exe": 300, "msedgewebview2.exe": 400}
+      }
+    }
+  }
+}
